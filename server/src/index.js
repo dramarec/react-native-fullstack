@@ -1,5 +1,5 @@
 const { ApolloServer, gql } = require('apollo-server');
-const { MongoClient, ObjectID } = require('mongodb');
+const { MongoClient, ObjectID, ObjectId } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
@@ -33,9 +33,11 @@ const typeDefs = gql`
     type Mutation {
         signUp(input: SignUpInput!): AuthUser!
         signIn(input: SignInInput!): AuthUser!
+
         createTaskList(title: String!): TaskList!
         updateTaskList(id: ID!, title: String!): TaskList!
         deleteTaskList(id: ID!): Boolean!
+
         addUserToTaskList(taskListId: ID!, userId: ID!): TaskList
         createToDo(content: String!, taskListId: ID!): ToDo!
         updateToDo(id: ID!, content: String, isCompleted: Boolean): ToDo!
@@ -143,6 +145,26 @@ const resolvers = {
                 .collection('TaskList')
                 .insertOne(newTaskList);
             return result.ops[0];
+        },
+
+        updateTaskList: async (_, { id, title }, { db, user }) => {
+            if (!user) {
+                throw new Error('Authentication Error. Please sign in');
+            }
+            const result = await db.collection('TaskList').updateOne(
+                {
+                    _id: ObjectID(id),
+                },
+                {
+                    $set: {
+                        title,
+                    },
+                },
+            );
+            // return result.ops[0];
+            return await db
+                .collection('TaskList')
+                .findOne({ _id: ObjectID(id) });
         },
     },
     User: {
