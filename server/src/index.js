@@ -216,6 +216,34 @@ const resolvers = {
             const result = await db.collection('ToDo').insert(newToDo);
             return result.ops[0];
         },
+
+        updateToDo: async (_, data, { db, user }) => {
+            if (!user) {
+                throw new Error('Authentication Error. Please sign in');
+            }
+
+            await db.collection('ToDo').updateOne(
+                {
+                    _id: ObjectID(data.id),
+                },
+                {
+                    $set: data,
+                },
+            );
+
+            return await db.collection('ToDo').findOne({ _id: ObjectID(data.id) });
+        },
+
+        deleteToDo: async (_, { id }, { db, user }) => {
+            if (!user) {
+                throw new Error('Authentication Error. Please sign in');
+            }
+
+            // TODO only collaborators of this task list should be able to delete
+            await db.collection('ToDo').removeOne({ _id: ObjectID(id) });
+
+            return true;
+        },
     },
     User: {
         // id: (root) => {
@@ -232,6 +260,11 @@ const resolvers = {
             Promise.all(
                 userIds.map(userId => db.collection('Users').findOne({ _id: userId })),
             ),
+        todos: async ({ _id }, _, { db }) =>
+            await db
+                .collection('ToDo')
+                .find({ taskListId: ObjectID(_id) })
+                .toArray(),
     },
     ToDo: {
         id: ({ _id, id }) => _id || id,
