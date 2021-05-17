@@ -1,10 +1,14 @@
 const { ApolloServer, gql } = require("apollo-server");
 const { MongoClient } = require("mongodb");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const { DB_URI, DB_NAME } = process.env;
+const { DB_URI, DB_NAME, JWT_SECRET } = process.env;
+
+const getToken = (user) =>
+    jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "30 days" });
 
 const typeDefs = gql`
     type Query {
@@ -83,7 +87,7 @@ const resolvers = {
             const user = result.ops[0];
             return {
                 user,
-                token: "token",
+                token: getToken(user),
                 // token: getToken(user),
             };
         },
@@ -91,21 +95,17 @@ const resolvers = {
             const user = await db
                 .collection("Users")
                 .findOne({ email: input.email });
-            if (!user) {
-                throw new Error("Invalid credentials !email");
-            }
 
             //check if password is correct
-            const isPasswordCorrect = bcrypt.compareSync(
-                input.password,
-                user.password
-            );
-            if (!isPasswordCorrect) {
-                throw new Error("Invalid credentials !password");
+            const isPasswordCorrect =
+                user && bcrypt.compareSync(input.password, user.password);
+
+            if (!user || !isPasswordCorrect) {
+                throw new Error("Invalid credentials");
             }
             return {
                 user,
-                token: "TOKEN",
+                token: getToken(user),
             };
         },
     },
@@ -118,7 +118,6 @@ const resolvers = {
 };
 
 //! ============== connect to server ==============
-
 const start = async () => {
     const client = new MongoClient(DB_URI, {
         useNewUrlParser: true,
@@ -145,5 +144,4 @@ const start = async () => {
         console.log(`🚀  Server ready at ${url}`);
     });
 };
-
 start();
