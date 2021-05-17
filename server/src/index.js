@@ -84,7 +84,15 @@ const typeDefs = gql`
 
 const resolvers = {
     Query: {
-        myTaskLists: () => [],
+        myTaskLists: async (_, __, { db, user }) => {
+            if (!user) {
+                throw new Error('Authentication Error. Please sign in');
+            }
+            return await db
+                .collection('TaskList')
+                .find({ userIds: user._id })
+                .toArray();
+        },
     },
     Mutation: {
         signUp: async (_, data, { db }) => {
@@ -102,6 +110,7 @@ const resolvers = {
                 token: getToken(user),
             };
         },
+
         signIn: async (_, { input }, { db }) => {
             const user = await db
                 .collection('Users')
@@ -119,12 +128,40 @@ const resolvers = {
                 token: getToken(user),
             };
         },
+
+        createTaskList: async (_, { title }, { db, user }) => {
+            if (!user) {
+                throw new Error('Authentication Error. Please sign in');
+            }
+            const newTaskList = {
+                title,
+                createdAt: new Date().toISOString(),
+                userIds: [user._id],
+            };
+
+            const result = await db
+                .collection('TaskList')
+                .insertOne(newTaskList);
+            return result.ops[0];
+        },
     },
     User: {
         // id: (root) => {
         //     return root._id;
         // },
         id: ({ _id, id }) => _id || id,
+    },
+    TaskList: {
+        id: ({ _id, id }) => _id || id,
+
+        progress: () => 0,
+
+        users: async ({ userIds }, _, { db }) =>
+            Promise.all(
+                userIds.map(userId =>
+                    db.collection('Users').findOne({ _id: userId }),
+                ),
+            ),
     },
 };
 

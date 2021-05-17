@@ -1,0 +1,5 @@
+{
+    "editor.renderWhitespace": "all",
+    "editor.find.seedSearchStringFromSelection": false,
+    "editor.fontWeight": "normal"
+}
