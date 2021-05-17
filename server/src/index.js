@@ -7,8 +7,7 @@ dotenv.config();
 
 const { DB_URI, DB_NAME, JWT_SECRET } = process.env;
 
-const getToken = user =>
-    jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30 days' });
+const getToken = user => jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30 days' });
 
 const getUserFromToken = async (token, db) => {
     if (!token) {
@@ -19,9 +18,7 @@ const getUserFromToken = async (token, db) => {
     if (!tokenData?.id) {
         return null;
     }
-    return await db
-        .collection('Users')
-        .findOne({ _id: ObjectID(tokenData.id) });
+    return await db.collection('Users').findOne({ _id: ObjectID(tokenData.id) });
 };
 
 const typeDefs = gql`
@@ -90,10 +87,7 @@ const resolvers = {
             if (!user) {
                 throw new Error('Authentication Error. Please sign in');
             }
-            return await db
-                .collection('TaskList')
-                .find({ userIds: user._id })
-                .toArray();
+            return await db.collection('TaskList').find({ userIds: user._id }).toArray();
         },
 
         getTaskList: async (_, { id }, { db, user }) => {
@@ -101,9 +95,7 @@ const resolvers = {
                 throw new Error('Authentication Error. Please sign in');
             }
 
-            return await db
-                .collection('TaskList')
-                .findOne({ _id: ObjectID(id) });
+            return await db.collection('TaskList').findOne({ _id: ObjectID(id) });
         },
     },
     Mutation: {
@@ -124,9 +116,7 @@ const resolvers = {
         },
 
         signIn: async (_, { input }, { db }) => {
-            const user = await db
-                .collection('Users')
-                .findOne({ email: input.email });
+            const user = await db.collection('Users').findOne({ email: input.email });
 
             //check if password is correct
             const isPasswordCorrect =
@@ -151,9 +141,7 @@ const resolvers = {
                 userIds: [user._id],
             };
 
-            const result = await db
-                .collection('TaskList')
-                .insertOne(newTaskList);
+            const result = await db.collection('TaskList').insertOne(newTaskList);
             return result.ops[0];
         },
 
@@ -161,7 +149,7 @@ const resolvers = {
             if (!user) {
                 throw new Error('Authentication Error. Please sign in');
             }
-            const result = await db.collection('TaskList').updateOne(
+            await db.collection('TaskList').updateOne(
                 {
                     _id: ObjectID(id),
                 },
@@ -172,9 +160,7 @@ const resolvers = {
                 },
             );
             // return result.ops[0];
-            return await db
-                .collection('TaskList')
-                .findOne({ _id: ObjectID(id) });
+            return await db.collection('TaskList').findOne({ _id: ObjectID(id) });
         },
 
         deleteTaskList: async (_, { id }, { db, user }) => {
@@ -186,6 +172,35 @@ const resolvers = {
                 _id: ObjectID(id),
             });
             return true;
+        },
+
+        addUserToTaskList: async (_, { taskListId, userId }, { db, user }) => {
+            console.log('{*} ===> addUserToTaskList: ===> taskListId', taskListId);
+            if (!user) {
+                throw new Error('Authentication Error. Please sign in');
+            }
+
+            const taskList = await db
+                .collection('TaskList')
+                .findOne({ _id: ObjectID(taskListId) });
+            if (!taskList) {
+                return null;
+            }
+            if (taskList.userIds.find(dbId => dbId.toString() === userId.toString())) {
+                return taskList;
+            }
+            await db.collection('TaskList').updateOne(
+                {
+                    _id: ObjectID(taskListId),
+                },
+                {
+                    $push: {
+                        userIds: ObjectID(userId),
+                    },
+                },
+            );
+            taskList.userIds.push(ObjectID(userId));
+            return taskList;
         },
     },
     User: {
@@ -201,9 +216,7 @@ const resolvers = {
 
         users: async ({ userIds }, _, { db }) =>
             Promise.all(
-                userIds.map(userId =>
-                    db.collection('Users').findOne({ _id: userId }),
-                ),
+                userIds.map(userId => db.collection('Users').findOne({ _id: userId })),
             ),
     },
 };
