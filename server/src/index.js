@@ -1,14 +1,28 @@
-const { ApolloServer, gql } = require("apollo-server");
-const { MongoClient } = require("mongodb");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
+const { ApolloServer, gql } = require('apollo-server');
+const { MongoClient, ObjectID } = require('mongodb');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
 dotenv.config();
 
 const { DB_URI, DB_NAME, JWT_SECRET } = process.env;
 
-const getToken = (user) =>
-    jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "30 days" });
+const getToken = user =>
+    jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30 days' });
+
+const getUserFromToken = async (token, db) => {
+    if (!token) {
+        return null;
+    }
+    const tokenData = jwt.verify(token, JWT_SECRET);
+
+    if (!tokenData?.id) {
+        return null;
+    }
+    return await db
+        .collection('Users')
+        .findOne({ _id: ObjectID(tokenData.id) });
+};
 
 const typeDefs = gql`
     type Query {
@@ -81,19 +95,16 @@ const resolvers = {
             };
 
             // save to database
-            const result = await db.collection("Users").insert(newUser);
-            console.log("{*} ===> signUp: ===> result", result);
-
+            const result = await db.collection('Users').insert(newUser);
             const user = result.ops[0];
             return {
                 user,
                 token: getToken(user),
-                // token: getToken(user),
             };
         },
         signIn: async (_, { input }, { db }) => {
             const user = await db
-                .collection("Users")
+                .collection('Users')
                 .findOne({ email: input.email });
 
             //check if password is correct
@@ -101,7 +112,7 @@ const resolvers = {
                 user && bcrypt.compareSync(input.password, user.password);
 
             if (!user || !isPasswordCorrect) {
-                throw new Error("Invalid credentials");
+                throw new Error('Invalid credentials');
             }
             return {
                 user,
@@ -126,20 +137,19 @@ const start = async () => {
     await client.connect();
     const db = client.db(DB_NAME);
 
-    //db connect to ApolloServer
-    const context = {
-        db,
-    };
-
-    // The ApolloServer constructor requires two parameters: your schema
-    // definition and your set of resolvers.
     const server = new ApolloServer({
         typeDefs,
         resolvers,
-        context,
+        context: async ({ req }) => {
+            const token = req.headers.authorization;
+            const user = await getUserFromToken(token, db);
+            return {
+                db,
+                user,
+            };
+        },
     });
 
-    // The `listen` method launches a web server.
     server.listen().then(({ url }) => {
         console.log(`🚀  Server ready at ${url}`);
     });
