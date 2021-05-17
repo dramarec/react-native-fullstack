@@ -95,6 +95,16 @@ const resolvers = {
                 .find({ userIds: user._id })
                 .toArray();
         },
+
+        getTaskList: async (_, { id }, { db, user }) => {
+            if (!user) {
+                throw new Error('Authentication Error. Please sign in');
+            }
+
+            return await db
+                .collection('TaskList')
+                .findOne({ _id: ObjectID(id) });
+        },
     },
     Mutation: {
         signUp: async (_, data, { db }) => {
@@ -165,6 +175,17 @@ const resolvers = {
             return await db
                 .collection('TaskList')
                 .findOne({ _id: ObjectID(id) });
+        },
+
+        deleteTaskList: async (_, { id }, { db, user }) => {
+            if (!user) {
+                throw new Error('Authentication Error. Please sign in');
+            }
+
+            await db.collection('TaskList').removeOne({
+                _id: ObjectID(id),
+            });
+            return true;
         },
     },
     User: {
