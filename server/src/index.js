@@ -239,7 +239,6 @@ const resolvers = {
                 throw new Error('Authentication Error. Please sign in');
             }
 
-            // TODO only collaborators of this task list should be able to delete
             await db.collection('ToDo').removeOne({ _id: ObjectID(id) });
 
             return true;
@@ -254,7 +253,19 @@ const resolvers = {
     TaskList: {
         id: ({ _id, id }) => _id || id,
 
-        progress: () => 0,
+        progress: async ({ _id }, _, { db }) => {
+            const todos = await db
+                .collection('ToDo')
+                .find({ taskListId: ObjectID(_id) })
+                .toArray();
+            const completed = todos.filter(todo => todo.isCompleted);
+
+            if (todos.length === 0) {
+                return 0;
+            }
+
+            return (100 * completed.length) / todos.length;
+        },
 
         users: async ({ userIds }, _, { db }) =>
             Promise.all(
@@ -273,7 +284,7 @@ const resolvers = {
     },
 };
 
-//! ============== connect to server ==============
+//! ============== connect to server ============== //
 const start = async () => {
     const client = new MongoClient(DB_URI, {
         useNewUrlParser: true,
