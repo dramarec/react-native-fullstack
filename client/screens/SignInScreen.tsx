@@ -8,7 +8,6 @@ const SignInScreen = () => {
     const navigation = useNavigation();
 
     const onSubmit = () => {
-        // signIn({ variables: { email, password } });
         console.warn('onSubmit');
     };
     return (
@@ -39,7 +38,6 @@ const SignInScreen = () => {
             />
             <Pressable
                 onPress={onSubmit}
-                // disabled={loading}
                 style={{
                     backgroundColor: '#e33062',
                     height: 50,

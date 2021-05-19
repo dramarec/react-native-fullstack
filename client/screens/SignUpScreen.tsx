@@ -1,6 +1,34 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import {
+    View,
+    Text,
+    TextInput,
+    Pressable,
+    ActivityIndicator,
+    Alert,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { gql, useMutation } from '@apollo/client';
+
+const SIGN_UP_MUTATION = gql`
+    mutation signUp(
+        $name: String!
+        $email: String!
+        $password: String!
+    ) {
+        signUp(
+            input: { email: $email, password: $password, name: $name }
+        ) {
+            token
+            user {
+                id
+                name
+                email
+            }
+        }
+    }
+`;
 
 const SignUpScreen = () => {
     const [email, setEmail] = useState('');
@@ -8,8 +36,30 @@ const SignUpScreen = () => {
     const [password, setPassword] = useState('');
     const navigation = useNavigation();
 
+    // mutation[0] : A function to trigger the mutation
+    // mutation[1] : result object { data,error, loading }
+    const [signUp, { data, error, loading }] =
+        useMutation(SIGN_UP_MUTATION);
+    console.log('{*} ===> SignUpScreen ===> error', error);
+    console.log('{*} ===> SignUpScreen ===> data', data);
+
+    if (error) {
+        Alert.alert('Error signing up. Try again');
+    }
+
+    if (data) {
+        // save token
+        AsyncStorage.setItem('token', data.signUp.token).then(() => {
+            // redirect home
+            navigation.navigate('Home');
+        });
+    }
+
     const onSubmit = () => {
         console.warn('onSubmit');
+        signUp({
+            variables: { name, email, password },
+        });
     };
     return (
         <View style={{ padding: 20 }}>
@@ -62,6 +112,7 @@ const SignUpScreen = () => {
                     marginTop: 30,
                 }}
             >
+                {loading && <ActivityIndicator />}
                 <Text
                     style={{
                         color: 'white',
@@ -74,6 +125,7 @@ const SignUpScreen = () => {
             </Pressable>
 
             <Pressable
+                disabled={loading}
                 onPress={() => {
                     console.warn('nbavigate SignInScreen');
                     navigation.navigate('SignInScreen');
