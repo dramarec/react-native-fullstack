@@ -23,7 +23,7 @@ const initialState = [
     },
 ];
 
-export default function TabTwoScreen() {
+export default function ProjectScreen() {
     const [project, setProject] = useState(initialState);
 
     return (

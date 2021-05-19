@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import styles from './styles';
+import { useNavigation } from '@react-navigation/core';
 
 interface ProjectItemProps {
     project: {
@@ -12,9 +13,10 @@ interface ProjectItemProps {
 }
 
 const ProjectItem = ({ project }: ProjectItemProps) => {
+    const navigation = useNavigation();
     const onPress = () => {
-        console.warn(`open ${project.title}`);
-        // navigation.navigate('ToDoScreen', { id: project.id })
+        // console.warn(`open ${project.title}`);
+        navigation.navigate('ToDoScreen', { id: project.id });
     };
     return (
         <Pressable onPress={onPress} style={styles.rootContainer}>

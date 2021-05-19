@@ -27,7 +27,7 @@ const initialState = [
     },
 ];
 let id = '04';
-export default function TabOneScreen() {
+export default function ToDoScreen() {
     const [todos, setTodos] = useState(initialState);
     const [title, setTitle] = useState('');
 
