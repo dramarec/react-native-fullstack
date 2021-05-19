@@ -28,15 +28,41 @@ const GET_PROJECT = gql`
     }
 `;
 
+const CREATE_TODO = gql`
+    mutation createToDo($content: String!, $taskListId: ID!) {
+        createToDo(content: $content, taskListId: $taskListId) {
+            id
+            content
+            isCompleted
+
+            taskList {
+                id
+                progress
+                todos {
+                    id
+                    content
+                    isCompleted
+                }
+            }
+        }
+    }
+`;
+
 export default function ToDoScreen() {
     const [project, setProject] = useState(null);
     const [title, setTitle] = useState('');
 
     const route = useRoute();
+    const id = route.params.id;
 
     const { data, error, loading } = useQuery(GET_PROJECT, {
-        variables: { id: route.params.id },
+        variables: { id },
     });
+
+    const [
+        createTodo,
+        { data: createTodoData, error: createTodoError },
+    ] = useMutation(CREATE_TODO, { refetchQueries: GET_PROJECT });
 
     useEffect(() => {
         if (error) {
@@ -53,14 +79,14 @@ export default function ToDoScreen() {
     }, [data]);
 
     const createNewItem = (atIndex: number) => {
-        // const newTodos = [...todos];
-        // newTodos.splice(atIndex, 1, {
-        //     id: id,
-        //     content: '',
-        //     isCompleted: false,
-        // });
-        // setTodos(newTodos);
+        createTodo({
+            variables: {
+                content: '',
+                taskListId: id,
+            },
+        });
     };
+
     if (!project) {
         return null;
     }

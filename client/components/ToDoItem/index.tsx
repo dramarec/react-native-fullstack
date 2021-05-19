@@ -1,6 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, TextInput } from 'react-native';
+import { useMutation, gql } from '@apollo/client';
+
 import Checkbox from '../Checkbox';
+
+const UPDATE_TODO = gql`
+    mutation updateToDo(
+        $id: ID!
+        $content: String
+        $isCompleted: Boolean
+    ) {
+        updateToDo(
+            id: $id
+            content: $content
+            isCompleted: $isCompleted
+        ) {
+            id
+            content
+            isCompleted
+
+            taskList {
+                title
+                progress
+                todos {
+                    id
+                    content
+                    isCompleted
+                }
+            }
+        }
+    }
+`;
 
 interface TodoItemProps {
     todo: {
@@ -13,11 +43,22 @@ interface TodoItemProps {
 
 const ToDoItem = (props: TodoItemProps) => {
     const { todo, onSubmit } = props;
-
     const [isChecked, setIsChecked] = useState(false);
     const [content, setContent] = useState('');
 
     const input = useRef(null);
+
+    const [updateItem] = useMutation(UPDATE_TODO);
+
+    const callUpdateItem = () => {
+        updateItem({
+            variables: {
+                id: todo.id,
+                content,
+                isCompleted: isChecked,
+            },
+        });
+    };
 
     useEffect(() => {
         if (!todo) {
@@ -52,7 +93,10 @@ const ToDoItem = (props: TodoItemProps) => {
             {/* Checbox */}
             <Checkbox
                 isChecked={isChecked}
-                onPress={() => setIsChecked(!isChecked)}
+                onPress={() => {
+                    setIsChecked(!isChecked);
+                    callUpdateItem();
+                }}
             />
 
             {/* Text Input */}
@@ -67,6 +111,7 @@ const ToDoItem = (props: TodoItemProps) => {
                     marginLeft: 12,
                 }}
                 multiline
+                onEndEditing={callUpdateItem}
                 onSubmitEditing={onSubmit}
                 blurOnSubmit
                 onKeyPress={onKeyPress}
