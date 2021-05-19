@@ -1,45 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     FlatList,
     TextInput,
     KeyboardAvoidingView,
     Platform,
+    Alert,
 } from 'react-native';
+import { useQuery, useMutation, gql } from '@apollo/client';
+import { useRoute } from '@react-navigation/native';
+
 import { Text, View } from '../components/Themed';
 import ToDoItem from '../components/ToDoItem';
 
-const initialState = [
-    {
-        id: '1',
-        content: 'Drink Coffee',
-        isCompleted: true,
-    },
-    {
-        id: '2',
-        content: 'Learn JS',
-        isCompleted: true,
-    },
-    {
-        id: '3',
-        content: 'Learn TS',
-        isCompleted: true,
-    },
-];
-let id = '04';
+const GET_PROJECT = gql`
+    query getTaslist($id: ID!) {
+        getTaskList(id: $id) {
+            id
+            title
+            createdAt
+            todos {
+                id
+                content
+                isCompleted
+            }
+        }
+    }
+`;
+
 export default function ToDoScreen() {
-    const [todos, setTodos] = useState(initialState);
+    const [project, setProject] = useState(null);
     const [title, setTitle] = useState('');
 
+    const route = useRoute();
+
+    const { data, error, loading } = useQuery(GET_PROJECT, {
+        variables: { id: route.params.id },
+    });
+
+    useEffect(() => {
+        if (error) {
+            console.log(error);
+            Alert.alert('Error fetching project', error.message);
+        }
+    }, [error]);
+
+    useEffect(() => {
+        if (data) {
+            setProject(data.getTaskList);
+            setTitle(data.getTaskList.title);
+        }
+    }, [data]);
+
     const createNewItem = (atIndex: number) => {
-        const newTodos = [...todos];
-        newTodos.splice(atIndex, 1, {
-            id: id,
-            content: '',
-            isCompleted: false,
-        });
-        setTodos(newTodos);
+        // const newTodos = [...todos];
+        // newTodos.splice(atIndex, 1, {
+        //     id: id,
+        //     content: '',
+        //     isCompleted: false,
+        // });
+        // setTodos(newTodos);
     };
+    if (!project) {
+        return null;
+    }
 
     return (
         <KeyboardAvoidingView
@@ -55,7 +79,7 @@ export default function ToDoScreen() {
                     style={styles.title}
                 />
                 <FlatList
-                    data={todos}
+                    data={project?.todos}
                     renderItem={({ item, index }) => (
                         <ToDoItem
                             todo={item}
