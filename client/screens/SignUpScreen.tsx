@@ -40,8 +40,6 @@ const SignUpScreen = () => {
     // mutation[1] : result object { data,error, loading }
     const [signUp, { data, error, loading }] =
         useMutation(SIGN_UP_MUTATION);
-    console.log('{*} ===> SignUpScreen ===> error', error);
-    console.log('{*} ===> SignUpScreen ===> data', data);
 
     if (error) {
         Alert.alert('Error signing up. Try again');
@@ -77,7 +75,7 @@ const SignUpScreen = () => {
 
             <TextInput
                 placeholder="vadim@notjust.dev"
-                value={email}
+                value={email.toLowerCase()}
                 onChangeText={setEmail}
                 style={{
                     color: 'white',

@@ -8,7 +8,7 @@ const SplashScreen = () => {
 
     useEffect(() => {
         const checkedUser = async () => {
-            if (isAuthenticated()) {
+            if (await isAuthenticated()) {
                 navigation.navigate('Home');
             } else {
                 navigation.navigate('SignInScreen');
@@ -18,7 +18,7 @@ const SplashScreen = () => {
     }, []);
 
     const isAuthenticated = async () => {
-        // await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('token');
         const token = await AsyncStorage.getItem('token');
         return !!token;
     };

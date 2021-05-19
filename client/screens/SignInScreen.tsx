@@ -1,20 +1,61 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    TextInput,
+    Pressable,
+    Alert,
+    ActivityIndicator,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { useNavigation } from '@react-navigation/native';
+import { useMutation, gql } from '@apollo/client';
+
+const SIGN_IN_MUTATION = gql`
+    mutation signIn($email: String!, $password: String!) {
+        signIn(input: { email: $email, password: $password }) {
+            token
+            user {
+                id
+                name
+                email
+            }
+        }
+    }
+`;
 
 const SignInScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigation = useNavigation();
 
+    const [signIn, { data, error, loading }] =
+        useMutation(SIGN_IN_MUTATION);
+
+    useEffect(() => {
+        if (error) {
+            Alert.alert('Invalid credentials, try again');
+        }
+    }, [error]);
+
+    if (data) {
+        // save token
+        AsyncStorage.setItem('token', data.signIn.token).then(() => {
+            // redirect home
+            navigation.navigate('Home');
+        });
+    }
+
     const onSubmit = () => {
-        console.warn('onSubmit');
+        signIn({ variables: { email, password } });
     };
+
     return (
         <View style={{ padding: 20 }}>
             <TextInput
                 placeholder="mail@gmail.com"
-                value={email}
+                value={email.toLowerCase()}
                 onChangeText={setEmail}
                 style={{
                     color: 'white',
@@ -37,6 +78,7 @@ const SignInScreen = () => {
                 }}
             />
             <Pressable
+                disabled={loading}
                 onPress={onSubmit}
                 style={{
                     backgroundColor: '#e33062',
@@ -47,6 +89,8 @@ const SignInScreen = () => {
                     marginTop: 30,
                 }}
             >
+                {loading && <ActivityIndicator />}
+
                 <Text
                     style={{
                         color: 'white',
